@@ -1,5 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 
+using Migratedata.Data;
+
 using System.Data.Common;
 using System.Linq.Expressions;
 
@@ -11,8 +13,10 @@ namespace Migratedata
     {
         private readonly IDbStructureService _dbStructureService;
         public List<string> Databases { get; set; } = new List<string>();
-        public List<string> Tables { get; set; } = new List<string>();
+        public List<string> DestTables { get; set; } = new List<string>();
+        public List<string> SrcTables { get; set; } = new List<string>();
         string ConnectionStringSrc, ConnectionStringDest;
+        bool srcvalid, Destvalid;
         public Form1(IDbStructureService bStructureService)
         {
             InitializeComponent();
@@ -21,6 +25,10 @@ namespace Migratedata
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            CBMigrationType.Items.Add(MigrationType.Data);
+            CBMigrationType.Items.Add(MigrationType.Schema);
+            CBMigrationType.Items.Add(MigrationType.DataSchema);
+            CBMigrationType.SelectedIndex = 0;
             ServerTypeDest.Items.Add(ServerType.MSSQL);
             ServerTypeDest.Items.Add(ServerType.MySQL);
 
@@ -30,7 +38,7 @@ namespace Migratedata
             SeverSource.Enabled = serverDest.Enabled = DbNameSrc.Enabled = DbNameDest.Enabled
                 = BtnDest.Enabled = BtnTestSource.Enabled = false;
             SeverSource.Text = "DESKTOP-3M7KJOK\\SQLEXPRESS01";
-
+            btnMigration.Enabled = false;
 
 
         }
@@ -38,11 +46,9 @@ namespace Migratedata
         private void SeverSource_TextChanged(object sender, EventArgs e)
         {
             string _connectionString = $"Server={SeverSource.Text};Integrated Security=True;TrustServerCertificate=True";
-            
-
             try
             {
-                var dbs=_dbStructureService.GetDatabases(ConnectionStringSrc);
+                var dbs = _dbStructureService.GetDatabases(_connectionString);
                 DbNameSrc.Enabled = true;
                 DbNameSrc.Items.AddRange(dbs.ToArray());
 
@@ -80,8 +86,12 @@ namespace Migratedata
             try
             {
                 var test = _dbStructureService.GetTables(ConnectionStringSrc);
-                Tables = test.ToList();
-                MessageBox.Show("Connection succeful etablished", "Success");
+                SrcTables = test.ToList();
+                srcvalid = true;
+                if(Variables.MigrationType == MigrationType.Schema || Variables.MigrationType == MigrationType.DataSchema)
+                    btnMigration.Enabled = true;
+                else
+                    btnMigration.Enabled =  srcvalid && Destvalid;
 
             }
             catch (Exception ex)
@@ -99,29 +109,11 @@ namespace Migratedata
 
         private void serverDest_TextChanged(object sender, EventArgs e)
         {
-            string _connectionString = $"Server={SeverSource.Text};Integrated Security=True;TrustServerCertificate=True";
+            string _connectionString = $"Server={serverDest.Text};Integrated Security=True;TrustServerCertificate=True";
 
             try
             {
                 var databases = _dbStructureService.GetDatabases(_connectionString);
-                //using (SqlConnection connection = new SqlConnection(_connectionString))
-                //{
-                //    if (connection.State == System.Data.ConnectionState.Open) connection.Close();
-                //    connection.Open();
-                //    string query = "SELECT name FROM sys.databases where owner_sid != 0x01";
-
-                //    using (SqlCommand command = new SqlCommand(query, connection))
-                //    using (SqlDataReader reader = command.ExecuteReader())
-                //    {
-                //        while (reader.Read())
-                //            if (reader["name"] != DBNull.Value)
-                //            {
-                //                string dbname = reader.GetString(0);
-                //                databases.Add(dbname);
-                //            }
-                //    }
-                //    connection.Close();
-                //}
                 DbNameDest.Enabled = true;
                 DbNameDest.Items.AddRange(databases.ToArray());
 
@@ -152,21 +144,9 @@ namespace Migratedata
             try
             {
                 tables = _dbStructureService.GetTables(_connectionString).ToList();
-                //using (SqlConnection connection = new SqlConnection(_connectionString))
-                //{
-                //    if (connection.State == System.Data.ConnectionState.Open) connection.Close();
-                //    connection.Open();
-                //    using (SqlCommand cmd = new SqlCommand("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';", connection))
-                //    using (SqlDataReader reader = cmd.ExecuteReader())
-                //    {
-                //        while (reader.Read())
-                //        {
-                //            string table = reader.GetString(0);
-                //            tables.Add(table);
-                //        }
-                //    }
-
-                //}
+                DestTables = tables;
+                Destvalid = true;
+                btnMigration.Enabled = srcvalid && Destvalid;
                 MessageBox.Show("Connection succeful etablished", "Success");
 
             }
@@ -179,13 +159,22 @@ namespace Migratedata
 
         private void btnMigration_Click(object sender, EventArgs e)
         {
-            DbSturcture dbSturctureForm = new DbSturcture(Tables, ConnectionStringSrc, ConnectionStringDest);
+            DbSturcture dbSturctureForm = new DbSturcture(SrcTables, DestTables, ConnectionStringSrc, ConnectionStringDest);
             dbSturctureForm.Show();
         }
+
+        private void CBMigrationType_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if(CBMigrationType.SelectedItem != null && (MigrationType)CBMigrationType.SelectedItem != MigrationType.Data)
+            {
+                DestTables.Clear();
+                BtnDest.Enabled = false;
+                ServerTypeDest.Enabled = false;
+                serverDest.Enabled = false;
+                DbNameDest.Enabled = false;
+                Variables.MigrationType = (MigrationType)CBMigrationType.SelectedItem;
+            }
+        }
     }
-    public enum ServerType
-    {
-        MSSQL=1,
-        MySQL=2
-    }
+
 }

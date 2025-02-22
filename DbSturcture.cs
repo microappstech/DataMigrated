@@ -1,5 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 
+using Migratedata.Data;
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,33 +10,44 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 using System.Windows.Forms;
 
 namespace Migratedata
 {
     public partial class DbSturcture : Form
     {
-        List<string> Tables;
-        List<string> SelecetdTables;
+        List<string> SrcTables;
+        List<string> DestTables;
         string ConnectionStringSrc, ConnectionStringDest;
-        public DbSturcture(List<string> tables, string ConnectionStringSrc,string ConnectionStringDest)
+        IDbStructureService dbStructureService;
+        public DbSturcture(List<string> srcTables, List<string> destTables, string ConnectionStringSrc, string ConnectionStringDest)
         {
             InitializeComponent();
             this.ConnectionStringSrc = ConnectionStringSrc;
             this.ConnectionStringDest = ConnectionStringDest;
-            this.Tables = tables;
+            this.SrcTables = srcTables;
+            this.DestTables = destTables;
+            dbStructureService = new DbStructureService();
         }
 
         private void DbSturcture_Load(object sender, EventArgs e)
         {
+            BtnCopydata.Text = Variables.MigrationType == MigrationType.Schema ? "Create Database" : Variables.MigrationType == MigrationType.Data ? "Copy Data" : "Create Db & Copy";
             tablesList.Items.Clear();
-            tablesList.Items.AddRange(Tables.ToArray());
-            tablesList.SelectionMode =SelectionMode.MultiSimple;
-             if(chSelectAll.Checked)
-                for(int i=0 ; i < Tables.Count ; i++)
-                {
+            LbDestTables.Items.Clear();
+            for (int i = 0; i < SrcTables.Count; i++)
+            {
+                tablesList.Items.Add(SrcTables[i]);
+                if (chSelectAll.Checked)
                     tablesList.SetSelected(i, true);
-                }
+            }
+            for (int i = 0; i < DestTables.Count; i++)
+            {
+                LbDestTables.Items.Add(DestTables[i]);
+                LbDestTables.SetSelected(i, true);
+            }
+
         }
 
         private void checkedListBox1_SelectedIndexChanged(object sender, EventArgs e)
@@ -53,11 +66,13 @@ namespace Migratedata
             if (chSelectAll.Checked)
                 for (int i = 0; i < tablesList.Items.Count; i++)
                 {
+                    //tablesList.Items[i].Checked = true;
                     tablesList.SetSelected(i, true);
                 }
             else
                 for (int i = 0; i < tablesList.Items.Count; i++)
                 {
+                    //tablesList.Items[i].Checked = true;
                     tablesList.SetSelected(i, false);
                 }
         }
@@ -123,6 +138,60 @@ namespace Migratedata
             sql.AppendLine("\n);");
 
             return sql.ToString();
+        }
+
+        private void tablesLlist_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void BtnCopydata_Click(object sender, EventArgs e)
+        {
+            if(Variables.MigrationType == MigrationType.Data)
+            {
+                var res = dbStructureService.CopyData(SrcTables, DestTables,ConnectionStringSrc, ConnectionStringDest);
+                if(res)
+                {
+                    MessageBox.Show("Data copied successfully", "Success");
+                }
+                else
+                {
+                    MessageBox.Show("Data copied failed", "Error");
+                }
+            }
+            else if(Variables.MigrationType == MigrationType.Schema)
+            {
+                var res = dbStructureService.Createdatabase("Test", ConnectionStringSrc, GenerateScriptTables(ConnectionStringSrc, tablesList.SelectedItems.Cast<string>()));
+                if (res)
+                {
+                    MessageBox.Show("Database created successfully", "Success");
+                }
+                else
+                {
+                    MessageBox.Show("Database creation failed", "Error");
+                }
+            }
+            else
+            {
+                using (TransactionScope scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled)) 
+                { 
+                    var res = dbStructureService.Createdatabase("Test", ConnectionStringSrc, GenerateScriptTables(ConnectionStringSrc, tablesList.SelectedItems.Cast<string>()));
+                    if(!res)
+                    {
+                        MessageBox.Show("Database creation failed", "Error");
+                        throw new Exception();
+                    }
+                    var res2 = dbStructureService.CopyData(SrcTables, DestTables, ConnectionStringSrc, ConnectionStringDest);
+                    if(!res2)
+                    {
+                        MessageBox.Show("Data copied failed", "Error");
+                        throw new Exception();
+                    }
+                    scope.Complete();
+                }
+
+
+            }
         }
     }
 
