@@ -29,11 +29,12 @@
         private void InitializeComponent()
         {
             label1 = new Label();
-            tablesList = new CheckedListBox();
-            MigrationType = new RadioButton();
-            MigrationType2 = new RadioButton();
-            Next = new Button();
             chSelectAll = new CheckBox();
+            tablesList = new ListBox();
+            label2 = new Label();
+            selectAllDest = new CheckBox();
+            LbDestTables = new ListBox();
+            BtnCopydata = new Button();
             SuspendLayout();
             // 
             // label1
@@ -44,47 +45,6 @@
             label1.Size = new Size(126, 20);
             label1.TabIndex = 0;
             label1.Text = "Tables To Migrate";
-            // 
-            // tablesList
-            // 
-            tablesList.FormattingEnabled = true;
-            tablesList.Location = new Point(61, 98);
-            tablesList.Name = "tablesList";
-            tablesList.Size = new Size(360, 400);
-            tablesList.TabIndex = 1;
-            tablesList.SelectedIndexChanged += checkedListBox1_SelectedIndexChanged;
-            // 
-            // MigrationType
-            // 
-            MigrationType.AutoSize = true;
-            MigrationType.Location = new Point(626, 156);
-            MigrationType.Name = "MigrationType";
-            MigrationType.Size = new Size(96, 24);
-            MigrationType.TabIndex = 2;
-            MigrationType.TabStop = true;
-            MigrationType.Text = "Only Data";
-            MigrationType.UseVisualStyleBackColor = true;
-            // 
-            // MigrationType2
-            // 
-            MigrationType2.AutoSize = true;
-            MigrationType2.Location = new Point(626, 229);
-            MigrationType2.Name = "MigrationType2";
-            MigrationType2.Size = new Size(156, 24);
-            MigrationType2.TabIndex = 2;
-            MigrationType2.TabStop = true;
-            MigrationType2.Text = "Data And Structure";
-            MigrationType2.UseVisualStyleBackColor = true;
-            // 
-            // Next
-            // 
-            Next.Location = new Point(626, 334);
-            Next.Name = "Next";
-            Next.Size = new Size(94, 29);
-            Next.TabIndex = 3;
-            Next.Text = "Next";
-            Next.UseVisualStyleBackColor = true;
-            Next.Click += Next_Click;
             // 
             // chSelectAll
             // 
@@ -99,16 +59,69 @@
             chSelectAll.UseVisualStyleBackColor = true;
             chSelectAll.CheckedChanged += SelectAll_CheckedChanged;
             // 
+            // tablesList
+            // 
+            tablesList.FormattingEnabled = true;
+            tablesList.Location = new Point(62, 106);
+            tablesList.Name = "tablesList";
+            tablesList.SelectionMode = SelectionMode.MultiSimple;
+            tablesList.Size = new Size(293, 344);
+            tablesList.TabIndex = 6;
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(912, 20);
+            label2.Name = "label2";
+            label2.Size = new Size(123, 20);
+            label2.TabIndex = 0;
+            label2.Text = "Destanation data";
+            // 
+            // selectAllDest
+            // 
+            selectAllDest.AutoSize = true;
+            selectAllDest.Checked = true;
+            selectAllDest.CheckState = CheckState.Checked;
+            selectAllDest.Enabled = false;
+            selectAllDest.Location = new Point(912, 61);
+            selectAllDest.Name = "selectAllDest";
+            selectAllDest.Size = new Size(97, 24);
+            selectAllDest.TabIndex = 4;
+            selectAllDest.Text = "Select All ";
+            selectAllDest.UseVisualStyleBackColor = true;
+            selectAllDest.CheckedChanged += SelectAll_CheckedChanged;
+            // 
+            // LbDestTables
+            // 
+            LbDestTables.Enabled = false;
+            LbDestTables.FormattingEnabled = true;
+            LbDestTables.Location = new Point(912, 106);
+            LbDestTables.Name = "LbDestTables";
+            LbDestTables.SelectionMode = SelectionMode.MultiSimple;
+            LbDestTables.Size = new Size(293, 344);
+            LbDestTables.TabIndex = 6;
+            // 
+            // BtnCopydata
+            // 
+            BtnCopydata.Location = new Point(532, 552);
+            BtnCopydata.Name = "BtnCopydata";
+            BtnCopydata.Size = new Size(168, 29);
+            BtnCopydata.TabIndex = 7;
+            BtnCopydata.Text = "Copy Data";
+            BtnCopydata.UseVisualStyleBackColor = true;
+            BtnCopydata.Click += BtnCopydata_Click;
+            // 
             // DbSturcture
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1380, 668);
-            Controls.Add(chSelectAll);
-            Controls.Add(Next);
-            Controls.Add(MigrationType2);
-            Controls.Add(MigrationType);
+            Controls.Add(BtnCopydata);
+            Controls.Add(LbDestTables);
+            Controls.Add(selectAllDest);
             Controls.Add(tablesList);
+            Controls.Add(label2);
+            Controls.Add(chSelectAll);
             Controls.Add(label1);
             Name = "DbSturcture";
             Text = "DbSturcture";
@@ -120,10 +133,11 @@
         #endregion
 
         private Label label1;
-        private CheckedListBox tablesList;
-        private RadioButton MigrationType;
-        private RadioButton MigrationType2;
-        private Button Next;
         private CheckBox chSelectAll;
+        private ListBox tablesList;
+        private Label label2;
+        private CheckBox selectAllDest;
+        private ListBox LbDestTables;
+        private Button BtnCopydata;
     }
 }
