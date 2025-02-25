@@ -48,7 +48,7 @@ namespace Migratedata
             string _connectionString = $"Server={SeverSource.Text};Integrated Security=True;TrustServerCertificate=True";
             try
             {
-                var dbs = _dbStructureService.GetDatabases(_connectionString);
+                var dbs = _dbStructureService.GetDatabases(_connectionString, Variables.SourceServer);
                 DbNameSrc.Enabled = true;
                 DbNameSrc.Items.AddRange(dbs.ToArray());
 
@@ -69,6 +69,8 @@ namespace Migratedata
         {
             if (ServerTyppSrc.SelectedItem != "" && ServerTyppSrc.SelectedItem != null)
                 SeverSource.Enabled = true;
+
+            Variables.SourceServer = (ServerType)ServerTyppSrc.SelectedItem;
         }
 
         private void DbNameSrc_SelectedIndexChanged(object sender, EventArgs e)
@@ -85,7 +87,7 @@ namespace Migratedata
 
             try
             {
-                var test = _dbStructureService.GetTables(ConnectionStringSrc);
+                var test = _dbStructureService.GetTables(ConnectionStringSrc, Variables.SourceServer);
                 SrcTables = test.ToList();
                 srcvalid = true;
                 if(Variables.MigrationType == MigrationType.Schema || Variables.MigrationType == MigrationType.DataSchema)
@@ -109,11 +111,10 @@ namespace Migratedata
 
         private void serverDest_TextChanged(object sender, EventArgs e)
         {
-            string _connectionString = $"Server={serverDest.Text};Integrated Security=True;TrustServerCertificate=True";
-
+            string _connectionString = $"Server={serverDest.Text};";
             try
             {
-                var databases = _dbStructureService.GetDatabases(_connectionString);
+                var databases = _dbStructureService.GetDatabases(_connectionString, Variables.DestServer);
                 DbNameDest.Enabled = true;
                 DbNameDest.Items.AddRange(databases.ToArray());
 
@@ -128,6 +129,8 @@ namespace Migratedata
         {
             if (ServerTypeDest.SelectedItem != "" && ServerTypeDest.SelectedItem != null)
                 serverDest.Enabled = true;
+
+            Variables.DestServer = (ServerType)ServerTypeDest.SelectedItem;
         }
 
         private void DbNameDest_SelectedIndexChanged(object sender, EventArgs e)
@@ -140,10 +143,11 @@ namespace Migratedata
         private void BtnDest_Click(object sender, EventArgs e)
         {
             var tables = new List<string>();
-            string _connectionString = $"Server={SeverSource.Text};Database={DbNameSrc.Text};Integrated Security=True;TrustServerCertificate=True";
+            string _connectionString = $"Server={SeverSource.Text};Database={DbNameDest.Text};Integrated Security=True;TrustServerCertificate=True";
+            ConnectionStringDest = _connectionString;
             try
             {
-                tables = _dbStructureService.GetTables(_connectionString).ToList();
+                tables = _dbStructureService.GetTables(_connectionString, Variables.DestServer).ToList();
                 DestTables = tables;
                 Destvalid = true;
                 btnMigration.Enabled = srcvalid && Destvalid;
@@ -172,8 +176,8 @@ namespace Migratedata
                 ServerTypeDest.Enabled = false;
                 serverDest.Enabled = false;
                 DbNameDest.Enabled = false;
-                Variables.MigrationType = (MigrationType)CBMigrationType.SelectedItem;
             }
+                Variables.MigrationType = (MigrationType)CBMigrationType.SelectedItem;
         }
     }
 

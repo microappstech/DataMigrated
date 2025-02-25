@@ -35,6 +35,7 @@
             selectAllDest = new CheckBox();
             LbDestTables = new ListBox();
             BtnCopydata = new Button();
+            PBAction = new ProgressBar();
             SuspendLayout();
             // 
             // label1
@@ -103,7 +104,7 @@
             // 
             // BtnCopydata
             // 
-            BtnCopydata.Location = new Point(532, 552);
+            BtnCopydata.Location = new Point(518, 618);
             BtnCopydata.Name = "BtnCopydata";
             BtnCopydata.Size = new Size(168, 29);
             BtnCopydata.TabIndex = 7;
@@ -111,11 +112,20 @@
             BtnCopydata.UseVisualStyleBackColor = true;
             BtnCopydata.Click += BtnCopydata_Click;
             // 
+            // PBAction
+            // 
+            PBAction.Location = new Point(62, 525);
+            PBAction.Name = "PBAction";
+            PBAction.Size = new Size(1230, 29);
+            PBAction.TabIndex = 8;
+            PBAction.Click += PBAction_Click;
+            // 
             // DbSturcture
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1380, 668);
+            Controls.Add(PBAction);
             Controls.Add(BtnCopydata);
             Controls.Add(LbDestTables);
             Controls.Add(selectAllDest);
@@ -139,5 +149,6 @@
         private CheckBox selectAllDest;
         private ListBox LbDestTables;
         private Button BtnCopydata;
+        private ProgressBar PBAction;
     }
 }

@@ -13,6 +13,8 @@ using System.Threading.Tasks;
 using System.Transactions;
 using System.Windows.Forms;
 
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+
 namespace Migratedata
 {
     public partial class DbSturcture : Form
@@ -33,6 +35,14 @@ namespace Migratedata
 
         private void DbSturcture_Load(object sender, EventArgs e)
         {
+            PBAction.Minimum = 0;
+            PBAction.Maximum = 100;
+            PBAction.Value= 0;
+            PBAction.Step = 1;
+            PBAction.Style = ProgressBarStyle.Continuous;
+
+
+
             BtnCopydata.Text = Variables.MigrationType == MigrationType.Schema ? "Create Database" : Variables.MigrationType == MigrationType.Data ? "Copy Data" : "Create Db & Copy";
             tablesList.Items.Clear();
             LbDestTables.Items.Clear();
@@ -116,6 +126,9 @@ namespace Migratedata
                             if (!string.IsNullOrEmpty(maxLength) && maxLength != "-1")
                             {
                                 dataType += $"({maxLength})";
+                            }else if(maxLength == "-1" && dataType.ToLower().Contains("varchar"))
+                            {
+                                dataType += $"(MAX)";
                             }
 
                             sql.Append($"    {columnName} {dataType}");
@@ -147,51 +160,70 @@ namespace Migratedata
 
         private void BtnCopydata_Click(object sender, EventArgs e)
         {
-            if(Variables.MigrationType == MigrationType.Data)
-            {
-                var res = dbStructureService.CopyData(SrcTables, DestTables,ConnectionStringSrc, ConnectionStringDest);
-                if(res)
+            try { 
+            
+                PBAction.Value = 0;
+
+                if (Variables.MigrationType == MigrationType.Data)
                 {
-                    MessageBox.Show("Data copied successfully", "Success");
+                    PBAction.Style = ProgressBarStyle.Marquee;
+                    var res = dbStructureService.CopyData(SrcTables, DestTables, ConnectionStringSrc, ConnectionStringDest);
+                    PBAction.Value = 100;
+                    if (res)
+                    {
+                        MessageBox.Show("Data copied successfully", "Success");
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Data copied failed ", "Error");
+                    }
+
                 }
-                else
+                else if (Variables.MigrationType == MigrationType.Schema)
                 {
-                    MessageBox.Show("Data copied failed", "Error");
-                }
-            }
-            else if(Variables.MigrationType == MigrationType.Schema)
-            {
-                var res = dbStructureService.Createdatabase("Test", ConnectionStringSrc, GenerateScriptTables(ConnectionStringSrc, tablesList.SelectedItems.Cast<string>()));
-                if (res)
-                {
-                    MessageBox.Show("Database created successfully", "Success");
-                }
-                else
-                {
-                    MessageBox.Show("Database creation failed", "Error");
-                }
-            }
-            else
-            {
-                using (TransactionScope scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled)) 
-                { 
                     var res = dbStructureService.Createdatabase("Test", ConnectionStringSrc, GenerateScriptTables(ConnectionStringSrc, tablesList.SelectedItems.Cast<string>()));
-                    if(!res)
+                    PBAction.Value = 100;
+                    if (res)
+                    {
+                        MessageBox.Show("Database created successfully", "Success");
+                    }
+                    else
                     {
                         MessageBox.Show("Database creation failed", "Error");
-                        throw new Exception();
                     }
-                    var res2 = dbStructureService.CopyData(SrcTables, DestTables, ConnectionStringSrc, ConnectionStringDest);
-                    if(!res2)
-                    {
-                        MessageBox.Show("Data copied failed", "Error");
-                        throw new Exception();
-                    }
-                    scope.Complete();
                 }
+                else
+                {
+                    using (TransactionScope scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+                    {
+                        var res = dbStructureService.Createdatabase("Test", ConnectionStringSrc, GenerateScriptTables(ConnectionStringSrc, tablesList.SelectedItems.Cast<string>()));
+                        if (!res)
+                        {
+                            MessageBox.Show("Database creation failed", "Error");
+                            throw new Exception();
+                        }
+                        var res2 = dbStructureService.CopyData(SrcTables, DestTables, ConnectionStringSrc, ConnectionStringDest);
 
-
+                        PBAction.Value = 100;
+                        if (!res2)
+                        {
+                            MessageBox.Show("Data copied failed", "Error");
+                            throw new Exception();
+                        }
+                        scope.Complete();
+                    }
+                }
             }
+            finally
+            {
+                PBAction.Value = 100;
+                PBAction.Style = ProgressBarStyle.Continuous;
+            }
+        }
+
+        private void PBAction_Click(object sender, EventArgs e)
+        {
+
         }
     }
 

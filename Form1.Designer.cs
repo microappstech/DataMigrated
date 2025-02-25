@@ -76,7 +76,7 @@
             serverDest.Name = "serverDest";
             serverDest.Size = new Size(241, 27);
             serverDest.TabIndex = 0;
-            serverDest.TextChanged += serverDest_TextChanged;
+            serverDest.Leave += serverDest_TextChanged;
             // 
             // DbNameDest
             // 

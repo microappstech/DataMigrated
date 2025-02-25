@@ -1,5 +1,9 @@
 ﻿using Microsoft.Data.SqlClient;
 
+using Migratedata.Data;
+
+using MySql.Data.MySqlClient;
+
 using System;
 using System.Data;
 using System.Text;
@@ -11,17 +15,17 @@ public class DbStructureService: IDbStructureService
     public string connectionStringSource { get; private set; }
     public string connectionStringDest { get; private set; }
     
-    string IDbStructureService.GenerateTablesStructure(IEnumerable<string> tablesName, string connection)
+    string IDbStructureService.GenerateTablesStructure(IEnumerable<string> tablesName, string connection, ServerType serverType)
     {
         StringBuilder fullScript = new StringBuilder();
         foreach (string tableName in tablesName)
         {
-            string script = this.GenerateTableStructure(tableName, connection);
+            string script = this.GenerateTableStructure(tableName, connection, serverType);
         }
         return fullScript.ToString();
     }
 
-    public string GenerateTableStructure(string tableName ,string connectionString)
+    public string GenerateTableStructure(string tableName ,string connectionString, ServerType serverType)
     {
         StringBuilder sql = new StringBuilder();
         sql.AppendLine($"CREATE TABLE {tableName} (");
@@ -29,10 +33,7 @@ public class DbStructureService: IDbStructureService
         using (SqlConnection connection = new SqlConnection(connectionString))
         {
             connection.Open();
-            string query = $@"
-                SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE, COLUMN_DEFAULT
-                FROM INFORMATION_SCHEMA.COLUMNS 
-                WHERE TABLE_NAME = @TableName";
+            string query = Procedurescs.getQuery("GetTableStructure", serverType);
 
             using (SqlCommand cmd = new SqlCommand(query, connection))
             {
@@ -75,39 +76,63 @@ public class DbStructureService: IDbStructureService
     }
 
 
-    public IEnumerable<string> GetDatabases(string connectionString)
+    public IEnumerable<string> GetDatabases(string connectionString, ServerType serverType)
     {
         List<string> Databases = new List<string>();
-
-        using (SqlConnection connection = new SqlConnection(connectionString))
+        if(serverType == ServerType.MySQL)
         {
-            if (connection.State == System.Data.ConnectionState.Open) connection.Close();
-            connection.Open();
-            string query = "SELECT name FROM sys.databases where owner_sid != 0x01";
-
-            using (SqlCommand command = new SqlCommand(query, connection))
-            using (SqlDataReader reader = command.ExecuteReader())
+            using (MySqlConnection connection = new MySqlConnection(connectionString))
             {
-                while (reader.Read())
-                    if (reader["name"] != DBNull.Value)
-                    {
-                        string dbname = reader.GetString(0);
-                        Databases.Add(dbname);
-                    }
+                if (connection.State == System.Data.ConnectionState.Open) connection.Close();
+                connection.Open();
+                string query = Procedurescs.getQuery("GetDatabases", serverType);
+                using (MySqlCommand command = new MySqlCommand(query, connection))
+                using (MySqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                        if (reader["name"] != DBNull.Value)
+                        {
+                            string dbname = reader.GetString(0);
+                            Databases.Add(dbname);
+                        }
+                }
+                connection.Close();
             }
-            connection.Close();
+            return Databases;
+        }   
+        else if(serverType == ServerType.MSSQL)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                if (connection.State == System.Data.ConnectionState.Open) connection.Close();
+                connection.Open();
+                string query = Procedurescs.getQuery("GetDatabases", serverType);
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                        if (reader["name"] != DBNull.Value)
+                        {
+                            string dbname = reader.GetString(0);
+                            Databases.Add(dbname);
+                        }
+                }
+                connection.Close();
+            }
+            return Databases;
         }
         return Databases;
     }
 
-    public IEnumerable<string> GetTables(string connectionString)
+    public IEnumerable<string> GetTables(string connectionString , ServerType serverType)
     {
         List<string> Tables = new List<string>();
         using (SqlConnection connection = new SqlConnection(connectionString))
         {
             if (connection.State == System.Data.ConnectionState.Open) connection.Close();
             connection.Open();
-            using (SqlCommand cmd = new SqlCommand("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';", connection))
+            using (SqlCommand cmd = new SqlCommand(Procedurescs.getQuery("GetTables", serverType), connection))
             using (SqlDataReader reader = cmd.ExecuteReader())
             {
                 while (reader.Read())
@@ -131,35 +156,32 @@ public class DbStructureService: IDbStructureService
     }
     public IEnumerable<string> GeSrctDatabases()
     {
-        var dbs = this.GetDatabases(connectionStringSource);
+        var dbs = this.GetDatabases(connectionStringSource, Variables.SourceServer);
         return dbs;
     }
     public IEnumerable<string> GeDesttDatabases()
     {
-        var dbs = this.GetDatabases(connectionStringDest);
+        var dbs = this.GetDatabases(connectionStringDest, Variables.DestServer);
         return dbs;
     }
     public IEnumerable<string> GetSrcTables() 
     {
-        var tabs = GetTables(connectionStringSource);
+        var tabs = GetTables(connectionStringSource, Variables.SourceServer);
         return tabs;
     }
     public IEnumerable<string> GetDestTables()
     {
-        var tabs = GetTables(connectionStringDest);
+        var tabs = GetTables(connectionStringDest, Variables.DestServer);
         return tabs;
     }
-    public IEnumerable<string> GetColumns(string connectionString, string tableName)
+    public IEnumerable<string> GetColumns(string connectionString, string tableName, ServerType serverType)
     {
         List<string> Columns = new List<string>();
         using (SqlConnection connection = new SqlConnection(connectionString))
         {
             if (connection.State == System.Data.ConnectionState.Open) connection.Close();
             connection.Open();
-            string query = $@"
-                SELECT COLUMN_NAME
-                FROM INFORMATION_SCHEMA.COLUMNS 
-                WHERE TABLE_NAME = @TableName";
+            string query = Procedurescs.getQuery("GetColummns", serverType);
             using (SqlCommand cmd = new SqlCommand(query, connection))
             {
                 cmd.Parameters.AddWithValue("@TableName", tableName);
@@ -191,8 +213,8 @@ public class DbStructureService: IDbStructureService
             {
                 string TableSrc = TablesSrc.ElementAt(i);
                 string TableDest = TablesDest.ElementAt(i);
-                var srcColumns = GetColumns(connectionStringSrc, TableSrc);
-                var destColumns = GetColumns(connectionStringDest, TableDest);
+                var srcColumns = GetColumns(connectionStringSrc, TableSrc, Variables.SourceServer);
+                var destColumns = GetColumns(connectionStringDest, TableDest, Variables.DestServer);
                 if (srcColumns.Count() != destColumns.Count())
                 {
                     MessageBox.Show("The number of columns in the source and destination tables do not match.");
@@ -225,6 +247,9 @@ public class DbStructureService: IDbStructureService
         }
         catch (Exception ex)
         {
+            
+            MessageBox.Show($"Data copied failed {ex.Message}", "Error");
+
             Console.WriteLine($"Error copying data: {ex.Message}");
             return false; // Failure
         }

@@ -9,6 +9,8 @@ namespace Migratedata.Data
     public static class Variables
     {
         public static MigrationType MigrationType { get; set; }
+        public static ServerType SourceServer { get; set; }
+        public static ServerType DestServer { get; set; }
     }
 
 }
